@@ -3,14 +3,14 @@
 #include <iostream>
 #include <cstdlib>
 
-BinaryLoader::BinaryLoader() : bfdH(NULL), bfdInited(0)
+BinaryLoader::BinaryLoader() : bfdH(NULL), bfdInited(0), mDumpAllSections(false), mDumpSingleSection(false), mSectionName(""), mPrintSectionNames(false), mFileName("")
 {
 }
 
-int BinaryLoader::loadBinary(std::string &fileName, Binary::BinaryType type)
+int BinaryLoader::loadBinary(Binary::BinaryType type)
 {
     binary = new Binary();
-    return loadBinaryBFD(fileName, type);
+    return loadBinaryBFD(type);
 }
 
 void BinaryLoader::unloadBinary()
@@ -32,7 +32,7 @@ void BinaryLoader::unloadBinary()
     }
 }
 
-void BinaryLoader::openBFD(std::string &fileName)
+void BinaryLoader::openBFD()
 {
 
     if (!bfdInited)
@@ -41,33 +41,33 @@ void BinaryLoader::openBFD(std::string &fileName)
         bfdInited = 1;
     }
 
-    bfdH = bfd_openr(fileName.c_str(), NULL);
+    bfdH = bfd_openr(mFileName.c_str(), NULL);
     if (!bfdH)
     {
-        fprintf(stderr, "Failed to open binary '%s' (%s)\n", fileName.c_str(), bfd_errmsg(bfd_get_error()));
+        fprintf(stderr, "Failed to open binary '%s' (%s)\n", mFileName.c_str(), bfd_errmsg(bfd_get_error()));
     }
 
     if (!bfd_check_format(bfdH, bfd_object))
     {
-        fprintf(stderr, "File '%s' does not look like an executable (%s)\n", fileName.c_str(), bfd_errmsg(bfd_get_error()));
+        fprintf(stderr, "File '%s' does not look like an executable (%s)\n", mFileName.c_str(), bfd_errmsg(bfd_get_error()));
     }
 
     bfd_set_error(bfd_error_no_error);
 
     if (bfd_get_flavour(bfdH) == bfd_target_unknown_flavour)
     {
-        fprintf(stderr, "Unrecognized format for binary '%s' (%s)]n", fileName.c_str(), bfd_errmsg(bfd_get_error()));
+        fprintf(stderr, "Unrecognized format for binary '%s' (%s)]n", mFileName.c_str(), bfd_errmsg(bfd_get_error()));
     }
 }
 
-int BinaryLoader::loadBinaryBFD(std::string &fileName, Binary::BinaryType type)
+int BinaryLoader::loadBinaryBFD(Binary::BinaryType type)
 {
     int ret;
     const bfd_arch_info_type *bfdInfo;
 
     if (bfdH == NULL)
     {
-        openBFD(fileName);
+        openBFD();
 
         if (!bfdH)
         {
@@ -76,7 +76,7 @@ int BinaryLoader::loadBinaryBFD(std::string &fileName, Binary::BinaryType type)
         }
     }
 
-    binary->filename = std::string(fileName);
+    binary->filename = std::string(mFileName);
     binary->entry = bfd_get_start_address(bfdH);
 
     binary->typeStr = std::string(bfdH->xvec->name);
@@ -320,27 +320,93 @@ int BinaryLoader::loadSectionsBFD()
 
 void BinaryLoader::outputHeader()
 {
+    printf("******************\n\nSTART HEADER\n\n");
     printf("Loaded binary '%s' %s/%s (%u bits) entry@0x%016jx\n",
            binary->filename.c_str(),
            binary->typeStr.c_str(),
            binary->archStr.c_str(),
            binary->bits,
            binary->entry);
+    printf("\n\n");
 }
 
 void BinaryLoader::outputSections()
 {
     size_t i;
     Section *section;
+    printf("******************\n\n");
+    printf("\tSTART SECTIONS");
+    for (i = 0; i < binary->sections.size(); i++)
+    {
+        printf("\n\n******************\n\n");
+        section = &binary->sections[i];
+        printf("SECTION:\t%s\n", section->name.c_str());
+        printf("VADDRESS:\t0x%016jx\n", section->vma);
+        printf("SIZE:\t\t%-8ju\n", section->size);
+        printf("TYPE:\t\t%s\n", section->type == Section::SEC_TYPE_CODE ? "CODE" : "DATA");
+        if (mDumpAllSections)
+        {
+            printf("\n******************\n\n");
+            printf("\tDATA");
+            printf("\n\t");
+            for (uint64_t index = 0; index < section->size; index++)
+            {
+                if (index % 16 == 0)
+                {
+                    printf("\n\t");
+                }
+                printf("%02x ", section->bytes[index]);
+            }
+            printf("\n\n\tEND DATA\n\n");
+            printf("******************\n\n");
+        }
+    }
+    printf("\n\n");
+}
+
+void BinaryLoader::outputSection()
+{
+    size_t i;
+    Section *section;
+    printf("\n\n******************\n\n");
     for (i = 0; i < binary->sections.size(); i++)
     {
         section = &binary->sections[i];
-        printf(" 0x%016jx %-8ju %-20s %s\n",
-               section->vma,
-               section->size,
-               section->name.c_str(),
-               section->type == Section::SEC_TYPE_CODE ? "CODE" : "DATA");
+        if (section->name == mSectionName)
+        {
+            printf("SECTION:\t%s\n", section->name.c_str());
+            printf("VADDRESS:\t0x%016jx\n", section->vma);
+            printf("SIZE:\t\t%-8ju\n", section->size);
+            printf("TYPE:\t\t%s\n", section->type == Section::SEC_TYPE_CODE ? "CODE" : "DATA");
+            printf("\n******************\n\n");
+            printf("\tDATA");
+            printf("\n\t");
+            for (uint64_t i = 0; i < section->size; i++)
+            {
+                if (i % 16 == 0)
+                {
+                    printf("\n\t");
+                }
+                printf("%02x ", section->bytes[i]);
+            }
+            printf("\n\n\tEND DATA\n\n");
+            printf("******************\n\n");
+
+            return;
+        }
     }
+}
+
+void BinaryLoader::outputSectionNames()
+{
+    printf("****************\n");
+    printf("SECTION NAMES\n\n");
+    for (size_t i = 0; i < binary->sections.size(); i++)
+    {
+        Section *section = &binary->sections[i];
+        printf(" %s\n", section->name.c_str());
+    }
+    printf("\n");
 }
 
 void BinaryLoader::outputSymbols()
@@ -350,6 +416,7 @@ void BinaryLoader::outputSymbols()
 
     if (binary->symbols.size() > 0)
     {
+        printf("******************\n\nSTART SYMBOLS\n\n");
         printf("scanned symbol tables\n");
         for (i = 0; i < binary->symbols.size(); i++)
         {
@@ -360,6 +427,7 @@ void BinaryLoader::outputSymbols()
                    (symbol->type & Symbol::SYM_TYPE_FUNC ? "FUNC" : ""));
         }
     }
+    printf("\n\n");
 }
 
 void BinaryLoader::outputAll()
