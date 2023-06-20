@@ -89,6 +89,11 @@ int parseOptions(int argc, char *argv[], BinaryLoader &loader)
             loader.setPrintSectionNames(true);
             ++singleOptAmt;
         }
+        else if (long_options[optIndex].name == "help")
+        {
+            printHelp();
+            return -1;
+        }
         else
         {
             printHelp();
@@ -106,5 +111,11 @@ int parseOptions(int argc, char *argv[], BinaryLoader &loader)
 
 void printHelp()
 {
-    printf("Help goes here\n");
+    printf("Usage: binaryLoader [OPTION]... --file ...\n");
+    printf("Lists information about given executable (ELF or PE)\n");
+    printf("use only one of the following commands.\n");
+    printf("--help\t%44s\n", "Prints this.");
+    printf("--dump-all-sections\t%45s\n", "Prints data for all sections.");
+    printf("--dump-section\t[Section Name]\t%39s\n", "Prints data of a single section");
+    printf("--print-section-names\t%39s\n", "Lists all section names");
 }

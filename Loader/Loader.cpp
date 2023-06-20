@@ -335,30 +335,24 @@ void BinaryLoader::outputSections()
     size_t i;
     Section *section;
     printf("******************\n\n");
-    printf("\tSTART SECTIONS");
+    printf("\tSTART SECTIONS\n");
     for (i = 0; i < binary->sections.size(); i++)
     {
-        printf("\n\n******************\n\n");
         section = &binary->sections[i];
-        printf("SECTION:\t%s\n", section->name.c_str());
-        printf("VADDRESS:\t0x%016jx\n", section->vma);
-        printf("SIZE:\t\t%-8ju\n", section->size);
-        printf("TYPE:\t\t%s\n", section->type == Section::SEC_TYPE_CODE ? "CODE" : "DATA");
         if (mDumpAllSections)
         {
-            printf("\n******************\n\n");
-            printf("\tDATA");
-            printf("\n\t");
-            for (uint64_t index = 0; index < section->size; index++)
-            {
-                if (index % 16 == 0)
-                {
-                    printf("\n\t");
-                }
-                printf("%02x ", section->bytes[index]);
-            }
-            printf("\n\n\tEND DATA\n\n");
-            printf("******************\n\n");
+            mSectionName = section->name;
+            outputSection();
+            continue;
+        }
+        else
+        {
+
+            printf("  0x%016jx %-8ju %-20s %s\n",
+                   section->vma,
+                   section->size,
+                   section->name.c_str(),
+                   section->type == Section::SEC_TYPE_CODE ? "CODE" : "DATA");
         }
     }
     printf("\n\n");
@@ -379,7 +373,7 @@ void BinaryLoader::outputSection()
             printf("SIZE:\t\t%-8ju\n", section->size);
             printf("TYPE:\t\t%s\n", section->type == Section::SEC_TYPE_CODE ? "CODE" : "DATA");
             printf("\n******************\n\n");
-            printf("\tDATA");
+            printf("\tBYTES");
             printf("\n\t");
             for (uint64_t i = 0; i < section->size; i++)
             {
@@ -389,8 +383,8 @@ void BinaryLoader::outputSection()
                 }
                 printf("%02x ", section->bytes[i]);
             }
-            printf("\n\n\tEND DATA\n\n");
-            printf("******************\n\n");
+            printf("\n\n\tEND BYTES\n\n");
+            printf("******************");
 
             return;
         }

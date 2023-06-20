@@ -9,6 +9,7 @@ static struct option long_options[] =
         {"dump-section", required_argument, 0, 0},
         {"file", required_argument, 0, 0},
         {"print-section-names", no_argument, 0, 0},
+        {"help", no_argument, 0, 0},
         {0, 0, 0, 0}
 
 };

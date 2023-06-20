@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(BinaryLoader VERSION 0.1.0 LANGUAGES C CXX)
+project(binaryLoader VERSION 0.1.0 LANGUAGES C CXX)
 
 include(CTest)
 enable_testing()
 
-add_executable(BinaryLoader 
+add_executable(${PROJECT_NAME} 
 
 main.cpp
 
